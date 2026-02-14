@@ -1,0 +1,10 @@
+Chat_Models/1_chatModel_oenAI.py
+Chat_Models/2_chatModel_claude.py
+Chat_Models/3_chatmodel_gemini.py
+Chat_Models/4_chatmodelhuggingface.py
+Chat_Models/hflocal.py
+# Ignore all env files everywhere
+.env
+.env.*
+**/.env
+**/.env.*
