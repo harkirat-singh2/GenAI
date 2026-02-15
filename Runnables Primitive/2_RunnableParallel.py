@@ -23,7 +23,7 @@ parser = StrOutputParser()
 
 parallel_chain=RunnableParallel({
     'tweet':RunnableSequence(prompt1,model1,parser),
-    'linkedin':RunnableSequence(prompt2,model1,parser)
+    'linkedin':prompt2 | model1 | parser
 
   }
 )
