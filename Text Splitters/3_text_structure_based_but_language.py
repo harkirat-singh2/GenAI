@@ -1,3 +1,4 @@
+from langchain_experimental.text_splitter import SemanticChunker
 from langchain_text_splitters import RecursiveCharacterTextSplitter,Language
 from langchain_community.document_loaders import PyPDFLoader
 
