@@ -1,37 +1,41 @@
 # yt_rag.py
 
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import NoTranscriptFound
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from transformers import pipeline
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from langchain_huggingface import HuggingFacePipeline
+from transformers import pipeline
 
-# -------------------------------
-# 1️⃣ GET TRANSCRIPT
-# -------------------------------
+
+# ---------------------------------
+# 1️⃣ FETCH TRANSCRIPT (ENGLISH FIRST)
+# ---------------------------------
+
 def get_transcript(video_id):
     api = YouTubeTranscriptApi()
+
+    print("Fetching transcript...")
 
     try:
         # Try English first
         transcript_list = api.fetch(video_id, languages=["en"])
         print("Using English transcript.")
-    except:
-        # If English not available, use any available transcript
-        print("English not available. Using available language transcript...")
+    except NoTranscriptFound:
+        print("English not available. Using first available language...")
         transcript_list = api.fetch(video_id)
 
     full_text = " ".join(chunk.text for chunk in transcript_list)
     return full_text
 
 
-
-
-# -------------------------------
+# ---------------------------------
 # 2️⃣ SPLIT TEXT INTO CHUNKS
-# -------------------------------
+# ---------------------------------
 
 def split_text(text):
     splitter = RecursiveCharacterTextSplitter(
@@ -42,44 +46,50 @@ def split_text(text):
     return [Document(page_content=chunk) for chunk in chunks]
 
 
-# -------------------------------
+# ---------------------------------
 # 3️⃣ CREATE VECTOR STORE
-# -------------------------------
+# ---------------------------------
 
 def create_vectorstore(docs):
+    print("Creating embeddings and vector store...")
+
     embedding_model = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
+
     return FAISS.from_documents(docs, embedding_model)
 
 
-# -------------------------------
-# 4️⃣ LOAD LIGHTWEIGHT LLM
-# -------------------------------
+# ---------------------------------
+# 4️⃣ LOAD LIGHTWEIGHT LLM (CPU SAFE)
+# ---------------------------------
 
 def load_llm():
+    print("Loading TinyLlama model (CPU mode)...")
+
     pipe = pipeline(
         "text-generation",
         model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
         max_new_tokens=200,
-        device=-1  # CPU
+        temperature=0.3,
+        device=-1
     )
+
     return HuggingFacePipeline(pipeline=pipe)
 
 
-# -------------------------------
-# 5️⃣ ASK QUESTION
-# -------------------------------
+# ---------------------------------
+# 5️⃣ BUILD CHAIN
+# ---------------------------------
 
-def ask_question(vectorstore, llm, question):
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    docs = retriever.invoke(question)
-
-    context = "\n\n".join(doc.page_content for doc in docs)
-
-    prompt = f"""
+def build_chain(llm):
+    template = """
 You are a helpful assistant.
-Answer clearly using only the context below.
+
+Answer ONLY from the provided context.
+Respond in clear English.
+Keep the answer short (3-4 sentences).
+Do not add extra suggestions.
 
 Context:
 {context}
@@ -90,39 +100,59 @@ Question:
 Answer:
 """
 
-    return llm.invoke(prompt)
+    prompt = PromptTemplate.from_template(template)
+    parser = StrOutputParser()
+
+    return prompt | llm | parser
 
 
+# ---------------------------------
+# 6️⃣ ASK QUESTION
+# ---------------------------------
 
-# -------------------------------
+def ask_question(vectorstore, llm, question):
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    docs = retriever.invoke(question)
+
+    context = "\n\n".join(doc.page_content for doc in docs)
+
+    chain = build_chain(llm)
+
+    return chain.invoke({
+        "context": context,
+        "question": question
+    })
+
+
+# ---------------------------------
 # MAIN PROGRAM
-# -------------------------------
+# ---------------------------------
 
 if __name__ == "__main__":
 
     video_url = input("Enter YouTube URL: ")
     video_id = video_url.split("v=")[1].split("&")[0]
 
-    print("\nFetching transcript...")
     transcript = get_transcript(video_id)
 
-    print("Splitting text...")
+    print("Splitting transcript...")
     docs = split_text(transcript)
 
-    print("Creating vector database...")
     vectorstore = create_vectorstore(docs)
 
-    print("Loading local LLM (TinyLlama)...")
     llm = load_llm()
 
-    print("\nReady! Ask questions about the video.\n")
+    print("\n✅ Ready! Ask questions about the video.")
+    print("Type 'exit' to quit.\n")
 
     while True:
-        question = input("Your Question (or type exit): ")
+        question = input("Your Question: ")
 
         if question.lower() == "exit":
             break
 
         answer = ask_question(vectorstore, llm, question)
-        print("\nAnswer:\n", answer)
+
+        print("\nAnswer:\n")
+        print(answer)
         print("-" * 60)
