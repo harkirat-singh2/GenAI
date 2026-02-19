@@ -13,7 +13,7 @@ from transformers import pipeline
 
 
 # ---------------------------------
-# 1️⃣ FETCH TRANSCRIPT (ENGLISH FIRST)
+# FETCH TRANSCRIPT (ENGLISH FIRST)
 # ---------------------------------
 
 def get_transcript(video_id):
@@ -34,7 +34,7 @@ def get_transcript(video_id):
 
 
 # ---------------------------------
-# 2️⃣ SPLIT TEXT INTO CHUNKS
+#  SPLIT TEXT INTO CHUNKS
 # ---------------------------------
 
 def split_text(text):
@@ -47,7 +47,7 @@ def split_text(text):
 
 
 # ---------------------------------
-# 3️⃣ CREATE VECTOR STORE
+#  CREATE VECTOR STORE
 # ---------------------------------
 
 def create_vectorstore(docs):
@@ -61,7 +61,7 @@ def create_vectorstore(docs):
 
 
 # ---------------------------------
-# 4️⃣ LOAD LIGHTWEIGHT LLM (CPU SAFE)
+#  LOAD LIGHTWEIGHT LLM (CPU SAFE)
 # ---------------------------------
 
 def load_llm():
@@ -79,7 +79,7 @@ def load_llm():
 
 
 # ---------------------------------
-# 5️⃣ BUILD CHAIN
+#  BUILD CHAIN
 # ---------------------------------
 
 def build_chain(llm):
@@ -107,7 +107,7 @@ Answer:
 
 
 # ---------------------------------
-# 6️⃣ ASK QUESTION
+#  ASK QUESTION
 # ---------------------------------
 
 def ask_question(vectorstore, llm, question):
