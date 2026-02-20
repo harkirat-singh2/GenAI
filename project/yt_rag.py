@@ -1,5 +1,4 @@
 # yt_rag.py
-
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import NoTranscriptFound
 from langchain_text_splitters import RecursiveCharacterTextSplitter
