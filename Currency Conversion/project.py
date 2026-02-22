@@ -74,6 +74,14 @@ for tool_call in ai_message.tool_calls:
 # Final LLM response
 final_response = llm_with_tools.invoke(messages)
 
-for block in final_response.content:
-    if block["type"] == "text":
-        print(block["text"])
+content = final_response.content
+
+# If content is string
+if isinstance(content, str):
+    print(content)
+
+# If content is list of blocks
+elif isinstance(content, list):
+    for block in content:
+        if isinstance(block, dict) and block.get("type") == "text":
+            print(block.get("text"))
